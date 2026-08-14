@@ -12,11 +12,11 @@ alerts:
   webhook_url: ""        # Slack/Discord incoming webhook
 
   email:
-    enabled: true        # set true for email alerts from the background .exe
-    to: you@example.com
+    enabled: true
+    to: dalwai.mn@gmail.com
     smtp_host: smtp.gmail.com
     smtp_port: 587
-    smtp_user: you@gmail.com
+    smtp_user: dalwai.mn@gmail.com
     smtp_password: ""    # prefer env var JOB_HUNTER_SMTP_PASSWORD instead
 
 search:
