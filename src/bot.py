@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from pathlib import Path
 
@@ -66,7 +67,12 @@ def run_scan(
     return matches, summary
 
 
-def watch(config: Config, profile: Profile) -> None:
+def watch(
+    config: Config,
+    profile: Profile,
+    stop_event: threading.Event | None = None,
+    scan_now_event: threading.Event | None = None,
+) -> None:
     interval_seconds = max(3600, int(config.search.poll_interval_hours * 3600))
     logger.info(
         "Background watch started. Checking every %sh. Press Ctrl+C to stop.",
@@ -74,11 +80,27 @@ def watch(config: Config, profile: Profile) -> None:
     )
 
     while True:
+        if stop_event and stop_event.is_set():
+            logger.info("Watch stopped")
+            return
         try:
             run_scan(config, profile, alert_new_only=True)
         except Exception:
             logger.exception("Scan failed")
-        time.sleep(interval_seconds)
+
+        if stop_event is None and scan_now_event is None:
+            time.sleep(interval_seconds)
+            continue
+
+        deadline = time.monotonic() + interval_seconds
+        while time.monotonic() < deadline:
+            if stop_event and stop_event.is_set():
+                logger.info("Watch stopped")
+                return
+            if scan_now_event and scan_now_event.is_set():
+                scan_now_event.clear()
+                break
+            time.sleep(0.5)
 
 
 def ensure_profile(config: Config, pdf: Path | None, text: Path | None) -> Profile:

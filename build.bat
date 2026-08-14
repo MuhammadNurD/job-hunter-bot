@@ -30,13 +30,16 @@ if not exist dist\data mkdir dist\data
 
 echo.
 echo Build complete: dist\JobHunterBot.exe
+echo Double-click dist\JobHunterBot.exe to start it in the system tray.
 echo.
+
+powershell -ExecutionPolicy Bypass -File "%~dp0scripts\install-shortcuts.ps1"
+
 echo Next steps:
 echo   1. Edit dist\config.yaml  - enable email alerts
 echo   2. Edit dist\profile.json   - add your LinkedIn profile
-echo   3. Run: dist\JobHunterBot.exe test-email
-echo   4. Run: dist\JobHunterBot.exe watch
-echo   5. Optional: powershell -ExecutionPolicy Bypass -File scripts\install-windows-task.ps1
+echo   3. Double-click dist\JobHunterBot.exe or the Desktop shortcut
+echo   4. Optional: powershell -ExecutionPolicy Bypass -File scripts\install-windows-task.ps1
 echo.
 
 endlocal

@@ -8,3 +8,5 @@ profile.json
 data/
 *.db
 .DS_Store
+build/
+dist/

@@ -92,6 +92,10 @@ def cmd_watch(args: argparse.Namespace) -> int:
     config, logger = _prepare_runtime(args, quiet_console=getattr(sys, "frozen", False))
     profile = ensure_profile(config, args.pdf, args.text)
     logger.info("Using app directory: %s", get_app_dir())
+    if sys.platform == "win32":
+        from src.tray import run_with_tray
+
+        return run_with_tray(config, profile)
     watch(config, profile)
     return 0
 
@@ -160,6 +164,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    commands = {"scan", "profile", "watch", "history", "test-email"}
+    if not any(arg in commands for arg in sys.argv[1:]):
+        sys.argv.append("watch")
     parser = build_parser()
     args = parser.parse_args()
     return args.func(args)
