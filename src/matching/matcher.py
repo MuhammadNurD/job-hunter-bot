@@ -84,10 +84,11 @@ def match_job(profile: Profile, job: JobListing) -> MatchResult:
         score = min(1.0, score + seniority_bonus + role_bonus)
 
     matched = sorted(skill for skill in profile.skills if skill.lower() in job.description.lower())
+    tech_terms = {term for terms in TECH_KEYWORDS.values() for term in terms}
     missing = sorted(
         term
         for term in job_kw
-        if term not in profile_kw and len(term) > 2 and not term.isdigit()
+        if term in tech_terms and term not in profile_kw
     )[:8]
 
     rationale_parts = []

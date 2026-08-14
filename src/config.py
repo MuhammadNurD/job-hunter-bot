@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+from src.paths import resolve_app_path
 
 
 @dataclass
@@ -75,30 +78,44 @@ class Config:
     openai_model: str = "gpt-4o-mini"
 
 
-def load_config(path: Path | str = "config.yaml") -> Config:
-    config_path = Path(path)
+def _resolve_config(config: Config) -> Config:
+    config.profile_path = resolve_app_path(config.profile_path)
+    config.data_dir = resolve_app_path(config.data_dir)
+    config.database_path = resolve_app_path(config.database_path)
+    config.data_dir.mkdir(parents=True, exist_ok=True)
+    return config
+
+
+def load_config(path: Path | str | None = None) -> Config:
+    config_path = resolve_app_path(path or "config.yaml")
     if not config_path.exists():
-        return Config()
+        return _resolve_config(Config())
 
     with config_path.open(encoding="utf-8") as handle:
         raw: dict[str, Any] = yaml.safe_load(handle) or {}
 
     alerts_raw = raw.get("alerts", {})
     search_raw = raw.get("search", {})
+    email_raw = alerts_raw.get("email", {})
+    smtp_password = (
+        os.environ.get("JOB_HUNTER_SMTP_PASSWORD")
+        or os.environ.get("SMTP_PASSWORD")
+        or email_raw.get("smtp_password", "")
+    )
 
-    return Config(
+    config = Config(
         profile_path=Path(raw.get("profile_path", "profile.json")),
         data_dir=Path(raw.get("data_dir", "data")),
         database_path=Path(raw.get("database_path", "data/jobs.db")),
         alerts=AlertConfig(
             console=alerts_raw.get("console", True),
             desktop=alerts_raw.get("desktop", False),
-            email_enabled=alerts_raw.get("email", {}).get("enabled", False),
-            email_to=alerts_raw.get("email", {}).get("to", ""),
-            smtp_host=alerts_raw.get("email", {}).get("smtp_host", "smtp.gmail.com"),
-            smtp_port=int(alerts_raw.get("email", {}).get("smtp_port", 587)),
-            smtp_user=alerts_raw.get("email", {}).get("smtp_user", ""),
-            smtp_password=alerts_raw.get("email", {}).get("smtp_password", ""),
+            email_enabled=email_raw.get("enabled", False),
+            email_to=email_raw.get("to", ""),
+            smtp_host=email_raw.get("smtp_host", "smtp.gmail.com"),
+            smtp_port=int(email_raw.get("smtp_port", 587)),
+            smtp_user=email_raw.get("smtp_user", ""),
+            smtp_password=smtp_password,
             webhook_url=alerts_raw.get("webhook_url", ""),
         ),
         search=SearchConfig(
@@ -122,6 +139,7 @@ def load_config(path: Path | str = "config.yaml") -> Config:
             min_match_score=float(search_raw.get("min_match_score", 0.35)),
             poll_interval_hours=float(search_raw.get("poll_interval_hours", 6.0)),
         ),
-        openai_api_key=raw.get("openai_api_key", ""),
+        openai_api_key=os.environ.get("OPENAI_API_KEY") or raw.get("openai_api_key", ""),
         openai_model=raw.get("openai_model", "gpt-4o-mini"),
     )
+    return _resolve_config(config)

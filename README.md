@@ -65,7 +65,86 @@ python run.py history
 python run.py history --export data/job-history.json
 ```
 
-## Alerts
+## Windows .exe (background + email)
+
+You can package this as a **single `.exe`** that runs silently in the background and emails you when new Allan Gray developer jobs appear.
+
+### Build on your Windows laptop
+
+Requirements: [Python 3.11+](https://www.python.org/downloads/) installed with "Add to PATH" checked.
+
+```bat
+cd path\to\job-hunter-bot
+build.bat
+```
+
+This creates `dist\JobHunterBot.exe` (no console window).
+
+### Configure email alerts
+
+Edit `dist\config.yaml`:
+
+```yaml
+alerts:
+  console: false         # no terminal when running as .exe
+  desktop: true          # optional Windows toast popups
+  email:
+    enabled: true
+    to: your-email@gmail.com
+    smtp_host: smtp.gmail.com
+    smtp_port: 587
+    smtp_user: your-email@gmail.com
+    smtp_password: ""    # leave blank and use env var instead (safer)
+```
+
+**Gmail users:** create an [App Password](https://myaccount.google.com/apppasswords) (requires 2FA). Set it as a Windows environment variable so it is not stored in plain text:
+
+```bat
+setx JOB_HUNTER_SMTP_PASSWORD "your-16-char-app-password"
+```
+
+**Outlook/Hotmail:** use `smtp.office365.com` port `587` with your Microsoft account.
+
+Test email delivery:
+
+```bat
+dist\JobHunterBot.exe test-email
+```
+
+### Run in the background
+
+**Option A - Task Scheduler (recommended):**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install-windows-task.ps1
+```
+
+Starts automatically when you log in. Logs go to `dist\data\job-hunter.log`.
+
+**Option B - Double-click:**
+
+Run `scripts\start-background.vbs` after editing `dist\config.yaml` and `dist\profile.json`.
+
+**Option C - Manual:**
+
+```bat
+dist\JobHunterBot.exe watch
+```
+
+The bot checks every 6 hours (change `search.poll_interval_hours` in config.yaml).
+
+### What you get by email
+
+Each new matching job email includes:
+
+- Job title, company, location, closing date
+- Match score and why it fits your profile
+- CV improvement suggestions
+- Direct **Apply** link (SuccessFactors)
+
+---
+
+## Alerts (all platforms)
 
 Edit `config.yaml`:
 

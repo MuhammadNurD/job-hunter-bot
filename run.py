@@ -9,13 +9,24 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
+from src.alerts.notifier import send_test_email
 from src.bot import ensure_profile, run_scan, watch
 from src.config import load_config
+from src.logging_setup import setup_logging
+from src.paths import default_config_path, ensure_runtime_files, get_app_dir
 from src.storage.database import JobDatabase
 
 
+def _prepare_runtime(args: argparse.Namespace, quiet_console: bool = False):
+    ensure_runtime_files()
+    config = load_config(args.config or default_config_path())
+    log_path = config.data_dir / "job-hunter.log"
+    logger = setup_logging(log_path, quiet_console=quiet_console)
+    return config, logger
+
+
 def cmd_scan(args: argparse.Namespace) -> int:
-    config = load_config(args.config)
+    config, _ = _prepare_runtime(args)
     profile = ensure_profile(config, args.pdf, args.text)
     matches, summary = run_scan(config, profile, alert_new_only=not args.all)
 
@@ -36,13 +47,17 @@ def cmd_scan(args: argparse.Namespace) -> int:
                     "rationale": match.rationale,
                 }
             )
-        Path(args.report).write_text(json.dumps(report, indent=2), encoding="utf-8")
-        print(f"Wrote report to {args.report}")
+        report_path = Path(args.report)
+        if not report_path.is_absolute():
+            report_path = get_app_dir() / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+        print(f"Wrote report to {report_path}")
     return 0
 
 
 def cmd_profile(args: argparse.Namespace) -> int:
-    config = load_config(args.config)
+    config, _ = _prepare_runtime(args)
     profile = ensure_profile(config, args.pdf, args.text)
     payload = {
         "name": profile.name,
@@ -65,35 +80,58 @@ def cmd_profile(args: argparse.Namespace) -> int:
     }
     print(json.dumps(payload, indent=2))
     if args.save:
-        Path(args.save).write_text(json.dumps(payload, indent=2), encoding="utf-8")
-        print(f"Saved profile to {args.save}")
+        save_path = Path(args.save)
+        if not save_path.is_absolute():
+            save_path = get_app_dir() / save_path
+        save_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        print(f"Saved profile to {save_path}")
     return 0
 
 
 def cmd_watch(args: argparse.Namespace) -> int:
-    config = load_config(args.config)
+    config, logger = _prepare_runtime(args, quiet_console=getattr(sys, "frozen", False))
     profile = ensure_profile(config, args.pdf, args.text)
+    logger.info("Using app directory: %s", get_app_dir())
     watch(config, profile)
     return 0
 
 
 def cmd_history(args: argparse.Namespace) -> int:
-    config = load_config(args.config)
+    config, _ = _prepare_runtime(args)
     db = JobDatabase(config.database_path)
     rows = db.list_jobs()
     if args.export:
-        db.export_json(Path(args.export))
-        print(f"Exported {len(rows)} jobs to {args.export}")
+        export_path = Path(args.export)
+        if not export_path.is_absolute():
+            export_path = get_app_dir() / export_path
+        db.export_json(export_path)
+        print(f"Exported {len(rows)} jobs to {export_path}")
     else:
         print(json.dumps(rows, indent=2))
     return 0
+
+
+def cmd_test_email(args: argparse.Namespace) -> int:
+    config, logger = _prepare_runtime(args)
+    try:
+        send_test_email(config.alerts)
+        print(f"Test email sent to {config.alerts.email_to}")
+        return 0
+    except (ValueError, Exception) as exc:
+        logger.exception("Test email failed")
+        print(f"Test email failed: {exc}", file=sys.stderr)
+        return 1
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Job Hunter Bot: Allan Gray developer job scanner with CV advice and alerts."
     )
-    parser.add_argument("--config", default="config.yaml", help="Path to config.yaml")
+    parser.add_argument(
+        "--config",
+        default=str(default_config_path()),
+        help="Path to config.yaml (defaults to folder containing the exe/script)",
+    )
     parser.add_argument("--pdf", type=Path, help="LinkedIn profile PDF export")
     parser.add_argument("--text", type=Path, help="Plain-text LinkedIn profile paste")
 
@@ -108,12 +146,15 @@ def build_parser() -> argparse.ArgumentParser:
     profile.add_argument("--save", help="Save parsed profile JSON to this path")
     profile.set_defaults(func=cmd_profile)
 
-    watch_cmd = sub.add_parser("watch", help="Continuously poll for new jobs")
+    watch_cmd = sub.add_parser("watch", help="Run in the background and poll for new jobs")
     watch_cmd.set_defaults(func=cmd_watch)
 
     history = sub.add_parser("history", help="Show previously seen jobs")
     history.add_argument("--export", help="Export job history to JSON file")
     history.set_defaults(func=cmd_history)
+
+    test_email = sub.add_parser("test-email", help="Send a test email using SMTP settings")
+    test_email.set_defaults(func=cmd_test_email)
 
     return parser
 

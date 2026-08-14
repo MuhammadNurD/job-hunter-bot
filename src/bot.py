@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import logging
 import time
 from pathlib import Path
 
 from src.alerts.notifier import send_alerts
-from src.config import Config, load_config
+from src.config import Config
 from src.cv.advisor import build_cv_advice
 from src.jobs.allan_gray import JobListing, filter_developer_jobs, scrape_allan_gray_careers
 from src.jobs.web_search import search_web_for_jobs
@@ -12,6 +13,8 @@ from src.matching.matcher import MatchResult, rank_jobs
 from src.profile.linkedin_parser import load_profile
 from src.profile.schema import Profile
 from src.storage.database import JobDatabase
+
+logger = logging.getLogger("job_hunter_bot")
 
 
 def collect_jobs(config: Config) -> list[JobListing]:
@@ -59,15 +62,22 @@ def run_scan(
         "matches": len(matches),
         "new_alerts": len(new_matches),
     }
+    logger.info("Scan complete: %s", summary)
     return matches, summary
 
 
 def watch(config: Config, profile: Profile) -> None:
     interval_seconds = max(3600, int(config.search.poll_interval_hours * 3600))
-    print(f"Watching for new Allan Gray developer roles every {interval_seconds // 3600}h...")
+    logger.info(
+        "Background watch started. Checking every %sh. Press Ctrl+C to stop.",
+        interval_seconds // 3600,
+    )
+
     while True:
-        _, summary = run_scan(config, profile, alert_new_only=True)
-        print(f"Scan complete: {summary}")
+        try:
+            run_scan(config, profile, alert_new_only=True)
+        except Exception:
+            logger.exception("Scan failed")
         time.sleep(interval_seconds)
 
 

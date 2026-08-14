@@ -8,16 +8,16 @@ openai_model: gpt-4o-mini
 
 alerts:
   console: true
-  desktop: false
-  webhook_url: ""  # Slack/Discord incoming webhook
+  desktop: true          # Windows toast notifications when running the .exe
+  webhook_url: ""        # Slack/Discord incoming webhook
 
   email:
-    enabled: false
+    enabled: true        # set true for email alerts from the background .exe
     to: you@example.com
     smtp_host: smtp.gmail.com
     smtp_port: 587
     smtp_user: you@gmail.com
-    smtp_password: ""  # use app password for Gmail
+    smtp_password: ""    # prefer env var JOB_HUNTER_SMTP_PASSWORD instead
 
 search:
   poll_interval_hours: 6

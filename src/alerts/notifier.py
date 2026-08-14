@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import logging
+import platform
 import smtplib
 import subprocess
 from email.message import EmailMessage
@@ -10,6 +12,8 @@ import requests
 from src.config import AlertConfig
 from src.cv.advisor import CvAdvice
 from src.matching.matcher import MatchResult
+
+logger = logging.getLogger("job_hunter_bot")
 
 
 def send_alerts(config: AlertConfig, matches: list[MatchResult], advice_map: dict[str, CvAdvice]) -> None:
@@ -25,6 +29,24 @@ def send_alerts(config: AlertConfig, matches: list[MatchResult], advice_map: dic
             _webhook(config.webhook_url, match, advice)
         if config.email_enabled and config.email_to:
             _email(config, match, advice)
+
+
+def send_test_email(config: AlertConfig) -> None:
+    if not config.email_enabled:
+        raise ValueError("Email alerts are disabled. Set alerts.email.enabled to true in config.yaml.")
+    if not config.email_to:
+        raise ValueError("Set alerts.email.to in config.yaml.")
+
+    msg = EmailMessage()
+    msg["Subject"] = "Job Hunter Bot test email"
+    msg["From"] = config.smtp_user or config.email_to
+    msg["To"] = config.email_to
+    msg.set_content(
+        "Your Job Hunter Bot email alerts are working.\n\n"
+        "Leave JobHunterBot.exe running with the watch command to receive job matches."
+    )
+    _send_smtp(config, msg)
+    logger.info("Test email sent to %s", config.email_to)
 
 
 def _format_message(match: MatchResult, advice: CvAdvice | None) -> str:
@@ -49,14 +71,40 @@ def _format_message(match: MatchResult, advice: CvAdvice | None) -> str:
 
 
 def _desktop_notify(title: str, url: str) -> None:
+    system = platform.system()
+    if system == "Windows":
+        _windows_notify(title, url)
+        return
+    if system == "Linux":
+        try:
+            subprocess.run(
+                ["notify-send", "Job Hunter Bot", f"{title}\n{url}"],
+                check=False,
+                capture_output=True,
+            )
+        except FileNotFoundError:
+            pass
+
+
+def _windows_notify(title: str, url: str) -> None:
     try:
+        ps_script = (
+            "[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, "
+            "ContentType = WindowsRuntime] | Out-Null; "
+            "$template = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent(1); "
+            "$textNodes = $template.GetElementsByTagName('text'); "
+            f"$textNodes.Item(0).AppendChild($template.CreateTextNode('{title.replace(chr(39), '')}')) | Out-Null; "
+            f"$textNodes.Item(1).AppendChild($template.CreateTextNode('{url.replace(chr(39), '')[:120]}')) | Out-Null; "
+            "$toast = [Windows.UI.Notifications.ToastNotification]::new($template); "
+            "[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('Job Hunter Bot').Show($toast);"
+        )
         subprocess.run(
-            ["notify-send", "Job Hunter Bot", f"{title}\n{url}"],
+            ["powershell", "-NoProfile", "-Command", ps_script],
             check=False,
             capture_output=True,
         )
     except FileNotFoundError:
-        pass
+        logger.warning("Could not show Windows desktop notification")
 
 
 def _webhook(url: str, match: MatchResult, advice: CvAdvice | None) -> None:
@@ -72,18 +120,27 @@ def _webhook(url: str, match: MatchResult, advice: CvAdvice | None) -> None:
     try:
         requests.post(url, json=payload, timeout=15)
     except requests.RequestException:
-        pass
+        logger.exception("Webhook alert failed")
 
 
 def _email(config: AlertConfig, match: MatchResult, advice: CvAdvice | None) -> None:
     msg = EmailMessage()
     msg["Subject"] = f"Job match: {match.job.title} @ {match.job.company}"
-    msg["From"] = config.smtp_user
+    msg["From"] = config.smtp_user or config.email_to
     msg["To"] = config.email_to
     msg.set_content(_format_message(match, advice))
+    try:
+        _send_smtp(config, msg)
+        logger.info("Email alert sent for %s", match.job.title)
+    except smtplib.SMTPException:
+        logger.exception("Failed to send email for %s", match.job.title)
 
-    with smtplib.SMTP(config.smtp_host, config.smtp_port) as server:
+
+def _send_smtp(config: AlertConfig, msg: EmailMessage) -> None:
+    with smtplib.SMTP(config.smtp_host, config.smtp_port, timeout=30) as server:
+        server.ehlo()
         server.starttls()
+        server.ehlo()
         if config.smtp_user and config.smtp_password:
             server.login(config.smtp_user, config.smtp_password)
         server.send_message(msg)
