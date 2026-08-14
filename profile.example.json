@@ -1,41 +1,36 @@
 {
   "name": "Your Name",
-  "headline": "Senior Software Developer | .NET & React | Microservices",
-  "summary": "Software developer with experience building client-facing and internal tools in financial services environments. Comfortable with .NET Core, React, cloud-native deployments, and collaborative agile teams.",
+  "headline": "Junior Software Engineer | .NET & React",
+  "summary": "Software developer with experience building client-facing and internal tools. Comfortable with .NET, React, SQL, and collaborative agile teams.",
   "location": "Cape Town, South Africa",
-  "linkedin_url": "https://www.linkedin.com/in/your-profile",
+  "linkedin_url": "https://www.linkedin.com/in/your-profile/",
   "skills": [
     "C#",
-    ".NET Core",
+    ".NET",
     "React",
-    "TypeScript",
-    "Microservices",
-    "Docker",
-    "Kubernetes",
-    "Azure",
-    "SQL Server",
+    "JavaScript",
+    "SQL",
     "REST APIs",
-    "Unit Testing",
+    "Azure DevOps",
+    "Git",
     "Agile/Scrum"
   ],
   "experience": [
     {
-      "title": "Software Developer",
-      "company": "Example FinTech",
-      "duration": "2022 - Present",
-      "description": "Built microservices with .NET Core and React frontends. Deployed to Kubernetes. Worked with business analysts to translate requirements into production features."
+      "title": "Junior Software Engineer",
+      "company": "Example Company",
+      "duration": "2025 - Present",
+      "description": "Built web applications with .NET APIs and React frontends. Worked in an Agile team using Azure DevOps and SQL."
     },
     {
       "title": "Junior Developer",
       "company": "Previous Company",
-      "duration": "2020 - 2022",
-      "description": "Maintained internal web applications, wrote automated tests, and participated in code reviews."
+      "duration": "2024 - 2025",
+      "description": "Contributed to full-stack projects, wrote tests, and participated in code reviews."
     }
   ],
   "education": [
-    "BSc Computer Science, University of Cape Town"
+    "Higher Certificate in Information Technology, Example Institution"
   ],
-  "certifications": [
-    "Microsoft Azure Fundamentals"
-  ]
+  "certifications": []
 }
