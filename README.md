@@ -2,6 +2,51 @@
 
 A Python bot that reads your LinkedIn profile, scans Allan Gray (and the wider web) for developer roles that match your experience, alerts you when new jobs appear, suggests CV improvements, and includes direct apply links.
 
+## Open in Cursor / VS Code
+
+### Option A: Publish to your GitHub (recommended)
+
+On your laptop, in the project folder:
+
+**Windows:**
+```bat
+gh auth login
+scripts\publish-to-github.bat
+```
+
+**Mac/Linux:**
+```bash
+gh auth login
+bash scripts/publish-to-github.sh
+```
+
+Then in Cursor: **File → Clone from GitHub** → select `job-hunter-bot`.
+
+### Option B: Create repo manually on GitHub
+
+1. Go to [github.com/new](https://github.com/new)
+2. Name it `job-hunter-bot`, keep it **Private**
+3. Do **not** add a README (this project already has one)
+4. In your project folder, run:
+
+```bash
+git branch -M main
+git remote add origin https://github.com/YOUR_USERNAME/job-hunter-bot.git
+git push -u origin main
+```
+
+5. In Cursor: **File → Open Folder** (if local) or **Clone from GitHub**
+
+### After cloning
+
+```bash
+pip install -r requirements.txt
+cp config.example.yaml config.yaml
+cp profile.example.json profile.json
+```
+
+Edit `config.yaml` and `profile.json` with your details. These files stay local (gitignored).
+
 ## What it does
 
 1. **Profile scan** - Parses your LinkedIn profile from JSON, PDF export, or plain text
