@@ -1,5 +1,4 @@
-' Starts Job Hunter Bot without a visible console window.
-' Double-click this file after configuring dist\config.yaml and dist\profile.json.
+' Starts Job Hunter Bot in the system tray. Double-click JobHunterBot.exe instead if you prefer.
 
 Set shell = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
@@ -14,4 +13,4 @@ If Not fso.FileExists(exePath) Then
 End If
 
 shell.CurrentDirectory = appDir & "\dist"
-shell.Run """" & exePath & """ watch", 0, False
+shell.Run """" & exePath & """", 0, False
