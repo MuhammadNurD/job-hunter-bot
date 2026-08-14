@@ -1,0 +1,48 @@
+profile_path: profile.json
+data_dir: data
+database_path: data/jobs.db
+
+# Optional: set OPENAI_API_KEY env var or paste key here for smarter CV suggestions
+# openai_api_key: ""
+openai_model: gpt-4o-mini
+
+alerts:
+  console: true
+  desktop: false
+  webhook_url: ""  # Slack/Discord incoming webhook
+
+  email:
+    enabled: false
+    to: you@example.com
+    smtp_host: smtp.gmail.com
+    smtp_port: 587
+    smtp_user: you@gmail.com
+    smtp_password: ""  # use app password for Gmail
+
+search:
+  poll_interval_hours: 6
+  min_match_score: 0.35
+  web_search_enabled: true
+  web_search_queries:
+    - "Allan Gray developer jobs Cape Town"
+    - "Allan Gray software engineer vacancies"
+    - "site:allangray.co.za developer OR software engineer"
+    - "Allan Gray .NET React developer"
+
+  developer_keywords:
+    - developer
+    - software
+    - engineer
+    - programmer
+    - devops
+    - full stack
+    - backend
+    - frontend
+    - microservices
+    - .net
+    - react
+    - kubernetes
+    - cloud
+    - business analyst
+    - software tester
+    - scrum master
